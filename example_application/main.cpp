@@ -9,7 +9,7 @@ using namespace daq;
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
-    const auto instance = Instance();
+    const auto instance = InstanceBuilder().addModulePath(MODULE_PATH).build();
     auto referenceDevice = instance.addDevice("daqref://device0");
     auto renderer = instance.addFunctionBlock("RefFBModuleRenderer");
     auto exampleModule = instance.addFunctionBlock("ExampleScalingModule");

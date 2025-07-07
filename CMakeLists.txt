@@ -32,6 +32,9 @@ if(OPENDAQ_FB_EXAMPLE_ENABLE_APP)
 endif()
 
 add_subdirectory(external)
+find_package(openDAQ)
+add_compile_definitions(MODULE_PATH="${OPENDAQ_MODULES_DIR}")
+
 add_subdirectory(example_module)
 
 if(OPENDAQ_FB_EXAMPLE_ENABLE_APP)
