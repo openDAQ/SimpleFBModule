@@ -1,0 +1,20 @@
+name: Download openDAQ framework release package from GitHub
+description: "Download openDAQ package from GitHub"
+
+inputs:
+  opendaq-release-version:
+    required: false
+    default: ''
+
+  destination-dir:
+    required: false
+    default: ${{ runner.temp }}
+
+runs:
+  using: composite
+  steps:
+  - name: Download openDAQ release
+    shell: bash
+    run: |
+      echo "::group::Do openDAQ package inputs"
+      gh release download

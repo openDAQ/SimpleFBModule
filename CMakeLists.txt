@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
-set(REPO_NAME example_fb_module)
-set(REPO_OPTION_PREFIX EXAMPLE_MODULE)
+project(SimpleFBModule VERSION 1.0.0)
 
-project(${REPO_NAME} VERSION 1.0.0)
+set(SIMPLE_FB_MODULE_OPENDAQ_SDK_VER "" CACHE STRING "Version of openDAQ SDK to build SimpleFBModule with")
+
+set(REPO_OPTION_PREFIX EXAMPLE_MODULE)
+set(SDK_TARGET_NAMESPACE daq)
 
 if (POLICY CMP0135)
     cmake_policy(SET CMP0135 NEW)
@@ -13,7 +15,7 @@ if (POLICY CMP0077)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-list(APPEND CMAKE_MESSAGE_CONTEXT ${REPO_NAME})
+list(APPEND CMAKE_MESSAGE_CONTEXT ${PROJECT_NAME})
 set(CMAKE_MESSAGE_CONTEXT_SHOW ON CACHE BOOL "Show CMake message context")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -21,7 +23,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 add_definitions(-DFMT_HEADER_ONLY)
 
 option(OPENDAQ_FB_EXAMPLE_ENABLE_APP "Enable building example function block application" OFF)
-option(EXAMPLE_MODULE_ENABLE_TESTS "Enable building of test suite for the example function block module" OFF)
+option(EXAMPLE_MODULE_ENABLE_TESTS "Enable building of test suite for the example function block module" ON)
 
 include(CommonUtils)
 setup_repo(${REPO_OPTION_PREFIX})
@@ -29,6 +31,11 @@ setup_repo(${REPO_OPTION_PREFIX})
 if(OPENDAQ_FB_EXAMPLE_ENABLE_APP)
 	set(DAQMODULES_REF_FB_MODULE ON CACHE BOOL "" FORCE)
 	set(DAQMODULES_REF_DEVICE_MODULE ON CACHE BOOL "" FORCE)
+endif()
+
+if(EXAMPLE_MODULE_ENABLE_TESTS)
+    message(STATUS "Unit tests are ENABLED")
+    enable_testing()
 endif()
 
 add_subdirectory(external)

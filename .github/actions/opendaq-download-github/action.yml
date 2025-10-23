@@ -1,0 +1,67 @@
+name: Download openDAQ framework package from GitHub
+description: "Download openDAQ package from GitHub"
+
+inputs:
+  source-type:
+    description: "Where to publish the build result (artifact or release)"
+    required: true
+
+  opendaq-package-filename:
+    description: "Package filename to download"
+    required: true
+
+  artifact-run-id:
+    required: false
+
+  opendaq-release-version:
+    required: false
+    default: ''
+
+  destination-directory:
+    required: false
+    default: ${{ runner.temp }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate arguments
+      shell: bash
+      run: |
+        echo "::group::Validating openDAQ package inputs"
+
+        # Array of allowed source-types
+        expected_source_types=("artifact" "release")
+        actual_source_type="${{ inputs.source-type }}"
+        package_filename="${{ inputs.opendaq-package-filename }}"
+
+        # Validate that source-type is not empty
+        if [[ -z "$actual_source_type" ]]; then
+          echo "::error ::❌ openDAQ package source-type is empty. Expected: ${expected_source_types[*]}"
+          exit 1
+        fi
+
+        # Validate that source-type is one of the allowed values
+        if [[ ! " ${expected_source_types[@]} " =~ " ${actual_source_type} " ]]; then
+          echo "::error ::❌ openDAQ package source-type='${actual_source_type}' is not supported. Expected: ${expected_source_types[*]}"
+          exit 1
+        fi
+
+        echo "::notice ::✅ openDAQ package source-type '${actual_source_type}' is valid."
+
+        # Validate that package filename is not empty
+        if [[ -z "$package_filename" ]]; then
+          echo "::error ::❌ openDAQ package filename is empty. It must not be empty."
+          exit 1
+        fi
+
+        echo "::notice ::✅ openDAQ package filename '${package_filename}' is valid."
+
+        echo "::endgroup::"
+
+    - name: Download openDAQ release
+      if: ${{ inputs.source-type == 'release' }}
+      run: gh release download ${{ inputs.opendaq-release-version }} --repo openDAQ/openDAQ --pattern ${{ inputs.opendaq-package-filename }} --dir ${{ inputs.destination-directory }}
+
+    - name: Download openDAQ artifact
+      if: ${{ inputs.source-type == 'artifact' }}
+      run: gh run download ${{ inputs.artifact-run-id }} --repo openDAQ/openDAQ --pattern ${{ inputs.opendaq-package-filename }} --dir ${{ inputs.destination-directory }}

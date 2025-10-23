@@ -1,5 +1,4 @@
 #include <gmock/gmock.h>
-#include <testutils/testutils.h>
 #include <opendaq/opendaq.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <thread>

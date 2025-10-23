@@ -1,0 +1,105 @@
+name: Build and Test simple FB module with latest openDAQ release 
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+      - actions
+
+  workflow_dispatch:
+    inputs:
+
+      branch:
+        required: false
+        default: "main"
+
+      opendaq-framework-version:
+        required: false
+        type: string
+        default: latest
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  build-and-test:
+    permissions:
+      contents: read
+      actions: read
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+    
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            generator: Ninja
+            platform-alias: "ubuntu20.04-x86_64"
+
+          - os: windows-latest
+            generator: "Visual Studio 17 2022"
+            platform-alias: "win64"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout simple FB module repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.event.client_payload.branch || github.ref }}
+
+      - name: Determine openDAQ framework package
+        id: opendaq-framework
+        uses: ./.github/actions/framework-latest-release
+        with:
+          opendaq-framework-release-version: ${{ github.event.inputs.opendaq-framework-version || 'latest' }}
+
+      - name: Actions temp
+        shell: bash
+        run: |
+          mkdir actions-temp
+
+      - name: Compose framework filename
+        id: compose-framework-filename
+        uses: openDAQ/actions/framework-compose-filename@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
+        with:
+          platform: ${{ matrix.platform-alias }}
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Download framework filename
+        id: download-framework-filename
+        uses: openDAQ/actions/framework-download-release@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
+        with:
+          platform: ${{ matrix.platform-alias }}
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Normalize downloaded asset
+        id: normalize-path
+        shell: bash
+        run: |
+          asset=${{ steps.download-framework-filename.outputs.asset }}
+          # Normalize output-dir path for cross-platform compatibility
+          if command -v cygpath >/dev/null 2>&1; then
+              asset="$(cygpath -w "$asset")"
+              echo "Normalized path (Windows): $asset"
+          fi
+          echo "asset=$asset" >> $GITHUB_OUTPUT
+
+      - name: Install openDAQ framework package
+        uses: openDAQ/actions/framework-install@jira/TBBAS-2680-opendaq-gh-actions-github-api-wrapper-unit-tests
+        with:
+          framework-filename: ${{ steps.normalize-path.outputs.asset }}
+
+      - name: Configure simple FB module with CMake
+        run: cmake -B build/output -S . -G "${{ matrix.generator }}" -DEXAMPLE_MODULE_ENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build simple FB module with CMake
+        run: cmake --build build/output --config Release
+
+      - name: Run simple FB module tests with CMake
+        run: ctest --test-dir build/output --output-on-failure -C Release -V

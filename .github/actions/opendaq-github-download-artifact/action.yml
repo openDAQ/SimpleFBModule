@@ -1,0 +1,56 @@
+name: Download openDAQ artifact from GitHub
+description: "Download openDAQ artifact from GitHub workflow by run ID and artifact name"
+
+inputs:
+  opendaq-artifact-run-id:
+    required: true
+
+  opendaq-artifact-name:
+    required: true
+
+  destination-dir:
+    required: false
+    default: ${{ runner.temp }}
+
+runs:
+  using: composite
+  steps:
+  - name: Download openDAQ artifact
+    shell: bash
+    run: |
+      DEST="${{ inputs.destination-dir }}"
+      DEST=$(echo "$DEST" | sed 's|\\|/|g')
+      RUN_ID="${{ inputs.opendaq-artifact-run-id }}"
+
+      ARTIFACT_NAME="${{ inputs.opendaq-artifact-name }}"
+      ARTIFACT_DIR="$DEST/$ARTIFACT_NAME"
+
+      echo "ARTIFACT_DIR=$ARTIFACT_DIR"
+      echo "ARTIFACT_NAME=$ARTIFACT_NAME"
+      echo "RUN_ID=$RUN_ID"
+
+      REPO="openDAQ/openDAQ"
+
+
+      URL=$(gh api repos/$REPO/actions/runs/$RUN_ID/artifacts \
+        --jq ".artifacts[] | select(.name==\"$ARTIFACT_NAME\") | .archive_download_url")
+
+      echo "URL to download: '$url'"
+      if [ -z "$URL" ]; then
+        echo "❌ Artifact '$ARTIFACT_NAME' not found in run $RUN_ID"
+        exit 1
+      fi
+
+      ZIP_PATH="$DEST/$ARTIFACT_NAME.zip"
+      gh api "$URL" --output "$ZIP_PATH"
+
+      echo "📦 Downloaded $ZIP_PATH"
+      unzip -o "$ZIP_PATH" -d "$DEST/$ARTIFACT_NAME"
+
+      # gh run download ${{ inputs.opendaq-artifact-run-id }} \
+      #   --repo openDAQ/openDAQ \
+      #   --name $ARTIFACT_NAME \
+      #   --dir "$DEST"
+
+      echo "$ARTIFACT_DIR/"
+      ls -la "$ARTIFACT_DIR/"
